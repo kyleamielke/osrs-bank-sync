@@ -3,6 +3,7 @@ package io.kyil.osrsbanksync;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.Collections;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -28,6 +29,7 @@ public class BankSubmitterTest
 
         config = mock(OsrsBankSyncConfig.class);
         when(config.targetUrl()).thenReturn(server.url("/").toString());
+        when(config.authToken()).thenReturn("");
 
         submitter = new BankSubmitter(new OkHttpClient(), new Gson(), config);
     }
@@ -100,6 +102,29 @@ public class BankSubmitterTest
 
         Assert.assertEquals(hashA, hashB);
         Assert.assertNotEquals(hashA, hashC);
+    }
+
+    @Test
+    public void testAddsAuthorizationHeaderWhenTokenPresent() throws Exception
+    {
+        when(config.authToken()).thenReturn("my-secret-token");
+        server.enqueue(new MockResponse().setResponseCode(200));
+
+        BankSubmitter.SubmitOutcome outcome = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
+
+        Assert.assertEquals(BankSubmitter.SubmitOutcome.SENT_OK, outcome);
+        RecordedRequest request = server.takeRequest();
+        Assert.assertEquals("Bearer my-secret-token", request.getHeader("Authorization"));
+    }
+
+    @Test
+    public void testShouldWarnPlaintextNonLoopback()
+    {
+        Assert.assertTrue(BankSubmitter.shouldWarnPlaintextNonLoopback(HttpUrl.parse("http://example.com:8484")));
+        Assert.assertFalse(BankSubmitter.shouldWarnPlaintextNonLoopback(HttpUrl.parse("https://example.com:8484")));
+        Assert.assertFalse(BankSubmitter.shouldWarnPlaintextNonLoopback(HttpUrl.parse("http://localhost:8484")));
+        Assert.assertFalse(BankSubmitter.shouldWarnPlaintextNonLoopback(HttpUrl.parse("http://127.0.0.1:8484")));
+        Assert.assertFalse(BankSubmitter.shouldWarnPlaintextNonLoopback(HttpUrl.parse("http://[::1]:8484")));
     }
 
     private static BankSnapshot snapshot(String snapshotId, String capturedAt, int quantity)

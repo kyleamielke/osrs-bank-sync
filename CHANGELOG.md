@@ -14,3 +14,4 @@
 - `BankSubmitter` (OkHttp) with payload-hash dedupe and `SubmitOutcome` enum; no chat output, no Authorization header in Phase 3 (Phase 3.2)
 - Bank-close, item-container-change, and game-state-change triggers wired through `OsrsBankSyncPlugin` (Phase 3.3)
 - Full config interface (authToken/submitMode/includeBank/showChatConfirmations) with secret=true on token; targetUrl validation rejects user:pass@ and ?query (Phase 4.1)
+- Authorization: Bearer header (when token configured); session-scoped warning when posting plaintext HTTP to a non-loopback host (Phase 4.2)
