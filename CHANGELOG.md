@@ -11,3 +11,4 @@
 - GitHub Actions workflow `java-build` running `./gradlew build --no-daemon` (Phase 1.3)
 - CI `python-lint` job: ruff + mypy --strict + pytest on `stub_server/` (Phase 2.2)
 - `BankSnapshot`, `BankItem` POJOs; `BankCaptureService`; `AccountTypeMapper` (Phase 3.1)
+- `BankSubmitter` (OkHttp) with payload-hash dedupe and `SubmitOutcome` enum; no chat output, no Authorization header in Phase 3 (Phase 3.2)
