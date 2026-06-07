@@ -7,4 +7,5 @@
 ### Added
 - Gradle 8.x wrapper, build.gradle targeting RuneLite latest.release with Java 11 source (Phase 1.1)
 - Minimal `OsrsBankSyncPlugin` + stub `OsrsBankSyncConfig` (Phase 1.2)
+- FastAPI stub server under `stub_server/` with `POST /api/v1/sync/bank` and `GET /healthz` for plugin development (Phase 2.1)
 - GitHub Actions workflow `java-build` running `./gradlew build --no-daemon` (Phase 1.3)
