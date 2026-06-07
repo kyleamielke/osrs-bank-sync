@@ -17,7 +17,7 @@ import net.runelite.api.Player;
 @Singleton
 public class BankCaptureService
 {
-    static final String PLUGIN_VERSION = "0.1.0-SNAPSHOT";
+    static final String PLUGIN_VERSION = "0.1.0";
 
     private final Client client;
 

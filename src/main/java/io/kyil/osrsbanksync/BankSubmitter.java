@@ -24,7 +24,7 @@ import okhttp3.ResponseBody;
 @Singleton
 public class BankSubmitter
 {
-    private static final String USER_AGENT = "osrs-bank-sync/0.1.0-SNAPSHOT (+https://github.com/kyleamielke/osrs-bank-sync)";
+    private static final String USER_AGENT = "osrs-bank-sync/0.1.0 (+https://github.com/kyleamielke/osrs-bank-sync)";
     private static final int LOG_RESPONSE_BODY_LIMIT = 200;
     private static final MediaType JSON_UTF8 = MediaType.parse("application/json; charset=utf-8");
 

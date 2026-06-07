@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-06-07
+
+
 - Initial repo bootstrap (Phase 0)
 
 ### Added

@@ -29,7 +29,7 @@ dependencies {
 }
 
 group = 'io.kyil.osrsbanksync'
-version = '0.1.0-SNAPSHOT'
+version = '0.1.0'
 
 tasks.withType(JavaCompile).configureEach {
     options.release.set(11)
