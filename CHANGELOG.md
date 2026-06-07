@@ -10,3 +10,4 @@
 - FastAPI stub server under `stub_server/` with `POST /api/v1/sync/bank` and `GET /healthz` for plugin development (Phase 2.1)
 - GitHub Actions workflow `java-build` running `./gradlew build --no-daemon` (Phase 1.3)
 - CI `python-lint` job: ruff + mypy --strict + pytest on `stub_server/` (Phase 2.2)
+- `BankSnapshot`, `BankItem` POJOs; `BankCaptureService`; `AccountTypeMapper` (Phase 3.1)
