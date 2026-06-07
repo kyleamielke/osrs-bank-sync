@@ -12,3 +12,4 @@
 - CI `python-lint` job: ruff + mypy --strict + pytest on `stub_server/` (Phase 2.2)
 - `BankSnapshot`, `BankItem` POJOs; `BankCaptureService`; `AccountTypeMapper` (Phase 3.1)
 - `BankSubmitter` (OkHttp) with payload-hash dedupe and `SubmitOutcome` enum; no chat output, no Authorization header in Phase 3 (Phase 3.2)
+- Bank-close, item-container-change, and game-state-change triggers wired through `OsrsBankSyncPlugin` (Phase 3.3)
