@@ -1,0 +1,34 @@
+plugins {
+    id 'java'
+    id 'io.freefair.lombok' version '8.14.2'
+}
+
+repositories {
+    mavenLocal()
+    maven {
+        url = 'https://repo.runelite.net'
+    }
+    mavenCentral()
+}
+
+def runeLiteVersion = 'latest.release'
+def lombokVersion = '1.18.30'
+
+dependencies {
+    compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
+
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
+    testImplementation "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testImplementation 'junit:junit:4.13.2'
+}
+
+group = 'io.kyil.osrsbanksync'
+version = '0.1.0-SNAPSHOT'
+
+tasks.withType(JavaCompile).configureEach {
+    options.release.set(11)
+}
