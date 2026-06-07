@@ -45,9 +45,9 @@ public class BankSubmitterTest
     {
         server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true}"));
 
-        BankSubmitter.SubmitOutcome outcome = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
+        SubmitResult result = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
 
-        Assert.assertEquals(BankSubmitter.SubmitOutcome.SENT_OK, outcome);
+        Assert.assertEquals(SubmitResult.Outcome.SENT_OK, result.getOutcome());
 
         RecordedRequest request = server.takeRequest();
         Assert.assertEquals("POST", request.getMethod());
@@ -61,9 +61,9 @@ public class BankSubmitterTest
     {
         server.enqueue(new MockResponse().setResponseCode(401).setBody("unauthorized"));
 
-        BankSubmitter.SubmitOutcome outcome = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
+        SubmitResult outcome = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
 
-        Assert.assertEquals(BankSubmitter.SubmitOutcome.SENT_REJECTED_TERMINAL, outcome);
+        Assert.assertEquals(SubmitResult.Outcome.SENT_REJECTED_TERMINAL, outcome.getOutcome());
     }
 
     @Test
@@ -71,11 +71,11 @@ public class BankSubmitterTest
     {
         server.enqueue(new MockResponse().setResponseCode(200));
 
-        BankSubmitter.SubmitOutcome first = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
-        BankSubmitter.SubmitOutcome second = submitter.submit(snapshot("id-2", "2025-01-15T22:31:10Z", 100), false);
+        SubmitResult first = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
+        SubmitResult second = submitter.submit(snapshot("id-2", "2025-01-15T22:31:10Z", 100), false);
 
-        Assert.assertEquals(BankSubmitter.SubmitOutcome.SENT_OK, first);
-        Assert.assertEquals(BankSubmitter.SubmitOutcome.SKIPPED_DEDUPE, second);
+        Assert.assertEquals(SubmitResult.Outcome.SENT_OK, first.getOutcome());
+        Assert.assertEquals(SubmitResult.Outcome.SKIPPED_DEDUPE, second.getOutcome());
         Assert.assertEquals(1, server.getRequestCount());
     }
 
@@ -85,11 +85,11 @@ public class BankSubmitterTest
         server.enqueue(new MockResponse().setResponseCode(200));
         server.enqueue(new MockResponse().setResponseCode(200));
 
-        BankSubmitter.SubmitOutcome first = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
-        BankSubmitter.SubmitOutcome second = submitter.submit(snapshot("id-2", "2025-01-15T22:31:10Z", 100), true);
+        SubmitResult first = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
+        SubmitResult second = submitter.submit(snapshot("id-2", "2025-01-15T22:31:10Z", 100), true);
 
-        Assert.assertEquals(BankSubmitter.SubmitOutcome.SENT_OK, first);
-        Assert.assertEquals(BankSubmitter.SubmitOutcome.SENT_OK, second);
+        Assert.assertEquals(SubmitResult.Outcome.SENT_OK, first.getOutcome());
+        Assert.assertEquals(SubmitResult.Outcome.SENT_OK, second.getOutcome());
         Assert.assertEquals(2, server.getRequestCount());
     }
 
@@ -110,9 +110,9 @@ public class BankSubmitterTest
         when(config.authToken()).thenReturn("my-secret-token");
         server.enqueue(new MockResponse().setResponseCode(200));
 
-        BankSubmitter.SubmitOutcome outcome = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
+        SubmitResult outcome = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
 
-        Assert.assertEquals(BankSubmitter.SubmitOutcome.SENT_OK, outcome);
+        Assert.assertEquals(SubmitResult.Outcome.SENT_OK, outcome.getOutcome());
         RecordedRequest request = server.takeRequest();
         Assert.assertEquals("Bearer my-secret-token", request.getHeader("Authorization"));
     }
@@ -127,6 +127,19 @@ public class BankSubmitterTest
         Assert.assertFalse(BankSubmitter.shouldWarnPlaintextNonLoopback(HttpUrl.parse("http://[::1]:8484")));
     }
 
+    @Test
+    public void testRejectedResultIncludesTruncatedBody()
+    {
+        String body = repeat("x", 240);
+        server.enqueue(new MockResponse().setResponseCode(400).setBody(body));
+
+        SubmitResult result = submitter.submit(snapshot("id-1", "2025-01-15T22:31:04Z", 100), false);
+
+        Assert.assertEquals(SubmitResult.Outcome.SENT_REJECTED_TERMINAL, result.getOutcome());
+        Assert.assertEquals(400, result.getHttpCode());
+        Assert.assertEquals(200, result.getResponseBody().length());
+    }
+
     private static BankSnapshot snapshot(String snapshotId, String capturedAt, int quantity)
     {
         return new BankSnapshot(
@@ -138,5 +151,15 @@ public class BankSubmitterTest
             snapshotId,
             Collections.singletonList(new BankItem(0, 995, quantity))
         );
+    }
+
+    private static String repeat(String value, int count)
+    {
+        StringBuilder out = new StringBuilder(value.length() * count);
+        for (int i = 0; i < count; i++)
+        {
+            out.append(value);
+        }
+        return out.toString();
     }
 }

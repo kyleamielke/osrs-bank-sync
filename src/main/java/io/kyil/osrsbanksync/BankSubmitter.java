@@ -50,18 +50,18 @@ public class BankSubmitter
         this.config = config;
     }
 
-    public SubmitOutcome submit(BankSnapshot snapshot, boolean force)
+    public SubmitResult submit(BankSnapshot snapshot, boolean force)
     {
         if (snapshot == null)
         {
-            return SubmitOutcome.NOT_ATTEMPTED;
+            return new SubmitResult(SubmitResult.Outcome.NOT_ATTEMPTED, 0, "");
         }
 
         String baseUrl = config.targetUrl();
         HttpUrl target = buildTargetUrl(baseUrl);
         if (target == null)
         {
-            return SubmitOutcome.NOT_ATTEMPTED;
+            return new SubmitResult(SubmitResult.Outcome.NOT_ATTEMPTED, 0, "");
         }
 
         if (shouldWarnPlaintextNonLoopback(target) && baseUrl != null
@@ -74,7 +74,7 @@ public class BankSubmitter
         String payloadHash = payloadHashForDedupe(snapshot);
         if (!force && payloadHash.equals(lastSubmittedPayloadHash))
         {
-            return SubmitOutcome.SKIPPED_DEDUPE;
+            return new SubmitResult(SubmitResult.Outcome.SKIPPED_DEDUPE, 0, "");
         }
 
         String payloadJson = wireGson.toJson(snapshot);
@@ -101,22 +101,22 @@ public class BankSubmitter
             if (code == 200 || code == 204)
             {
                 lastSubmittedPayloadHash = payloadHash;
-                return SubmitOutcome.SENT_OK;
+                return new SubmitResult(SubmitResult.Outcome.SENT_OK, code, "");
             }
             if (code >= 400 && code <= 499)
             {
-                return SubmitOutcome.SENT_REJECTED_TERMINAL;
+                return new SubmitResult(SubmitResult.Outcome.SENT_REJECTED_TERMINAL, code, responseBody);
             }
             if (code >= 500 && code <= 599)
             {
-                return SubmitOutcome.SENT_TRANSIENT_FAIL;
+                return new SubmitResult(SubmitResult.Outcome.SENT_TRANSIENT_FAIL, code, "");
             }
-            return SubmitOutcome.SENT_TRANSIENT_FAIL;
+            return new SubmitResult(SubmitResult.Outcome.SENT_TRANSIENT_FAIL, code, "");
         }
         catch (IOException e)
         {
             log.warn("Bank submit failed with IO exception", e);
-            return SubmitOutcome.SENT_TRANSIENT_FAIL;
+            return new SubmitResult(SubmitResult.Outcome.SENT_TRANSIENT_FAIL, 0, "");
         }
     }
 
@@ -165,11 +165,7 @@ public class BankSubmitter
         }
 
         String body = responseBody.string();
-        if (body.length() <= LOG_RESPONSE_BODY_LIMIT)
-        {
-            return body;
-        }
-        return body.substring(0, LOG_RESPONSE_BODY_LIMIT);
+        return StringUtils.truncate(body, LOG_RESPONSE_BODY_LIMIT);
     }
 
     private static String sha256Hex(String value)
@@ -200,14 +196,5 @@ public class BankSubmitter
             out.append(Character.forDigit(value & 0xF, 16));
         }
         return out.toString();
-    }
-
-    public enum SubmitOutcome
-    {
-        NOT_ATTEMPTED,
-        SKIPPED_DEDUPE,
-        SENT_OK,
-        SENT_REJECTED_TERMINAL,
-        SENT_TRANSIENT_FAIL
     }
 }

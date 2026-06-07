@@ -1,6 +1,7 @@
 package io.kyil.osrsbanksync;
 
 import com.google.inject.Provides;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +32,12 @@ public class OsrsBankSyncPlugin extends Plugin
     private static final String TARGET_URL_KEY = "targetUrl";
     private static final String INVALID_URL_MESSAGE =
         "Bank Sync: target URL must not contain user:pass@ or ?query — refusing to submit until fixed.";
+    private static final String PLAINTEXT_WARNING_MESSAGE =
+        "Bank sync is sending data over plaintext HTTP to a non-loopback host.";
 
     private volatile BankSnapshot lastCapturedSnapshot;
     private volatile boolean configValid = true;
+    private final AtomicReference<String> lastChatWarnedPlaintextUrl = new AtomicReference<>();
 
     @Inject
     private Client client;
@@ -52,6 +56,7 @@ public class OsrsBankSyncPlugin extends Plugin
     {
         dirty.set(false);
         lastCapturedSnapshot = null;
+        lastChatWarnedPlaintextUrl.set(null);
         configValid = validateTargetUrl(config.targetUrl());
         if (!configValid)
         {
@@ -65,6 +70,7 @@ public class OsrsBankSyncPlugin extends Plugin
     {
         dirty.set(false);
         lastCapturedSnapshot = null;
+        lastChatWarnedPlaintextUrl.set(null);
         log.info("OSRS Bank Sync stopped");
     }
 
@@ -115,11 +121,8 @@ public class OsrsBankSyncPlugin extends Plugin
         }
 
         lastCapturedSnapshot = snapshot;
-        BankSubmitter.SubmitOutcome outcome = submitter.submit(snapshot, false);
-        if (shouldClearDirty(outcome))
-        {
-            dirty.set(false);
-        }
+        maybeWarnPlaintextNonLoopbackInChat();
+        handleSubmitResult(submitter.submit(snapshot, false));
     }
 
     @Subscribe
@@ -148,17 +151,41 @@ public class OsrsBankSyncPlugin extends Plugin
             return;
         }
 
-        BankSubmitter.SubmitOutcome outcome = submitter.submit(lastCapturedSnapshot, false);
-        if (shouldClearDirty(outcome))
+        maybeWarnPlaintextNonLoopbackInChat();
+        handleSubmitResult(submitter.submit(lastCapturedSnapshot, false));
+    }
+
+    private void handleSubmitResult(SubmitResult result)
+    {
+        if (result.getOutcome() == SubmitResult.Outcome.SENT_OK
+            || result.getOutcome() == SubmitResult.Outcome.SENT_REJECTED_TERMINAL)
         {
             dirty.set(false);
         }
-    }
 
-    private static boolean shouldClearDirty(BankSubmitter.SubmitOutcome outcome)
-    {
-        return outcome == BankSubmitter.SubmitOutcome.SENT_OK
-            || outcome == BankSubmitter.SubmitOutcome.SENT_REJECTED_TERMINAL;
+        switch (result.getOutcome())
+        {
+            case SENT_OK:
+                if (config.showChatConfirmations())
+                {
+                    client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Bank synced.", null);
+                }
+                break;
+            case SENT_REJECTED_TERMINAL:
+                if (result.getHttpCode() == 401)
+                {
+                    client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
+                        "Bank sync auth failed — check token in config.", null);
+                }
+                else if (config.showChatConfirmations())
+                {
+                    String chat = "Bank sync rejected: " + StringUtils.truncate(result.getResponseBody(), 80);
+                    client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", chat, null);
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     @Subscribe
@@ -180,6 +207,26 @@ public class OsrsBankSyncPlugin extends Plugin
     private boolean validateTargetUrl(String raw)
     {
         return TargetUrlValidator.isValid(raw);
+    }
+
+    private void maybeWarnPlaintextNonLoopbackInChat()
+    {
+        String targetUrl = config.targetUrl();
+        if (targetUrl == null)
+        {
+            return;
+        }
+
+        okhttp3.HttpUrl parsed = okhttp3.HttpUrl.parse(targetUrl);
+        if (!BankSubmitter.shouldWarnPlaintextNonLoopback(parsed))
+        {
+            return;
+        }
+
+        if (!targetUrl.equals(lastChatWarnedPlaintextUrl.getAndSet(targetUrl)))
+        {
+            client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", PLAINTEXT_WARNING_MESSAGE, null);
+        }
     }
 
     @Provides
