@@ -4,6 +4,7 @@ import com.google.inject.Provides;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.InventoryID;
@@ -12,6 +13,7 @@ import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -25,7 +27,13 @@ import net.runelite.client.plugins.PluginDescriptor;
 public class OsrsBankSyncPlugin extends Plugin
 {
     private final AtomicBoolean dirty = new AtomicBoolean(false);
+    private static final String CONFIG_GROUP = "osrsbanksync";
+    private static final String TARGET_URL_KEY = "targetUrl";
+    private static final String INVALID_URL_MESSAGE =
+        "Bank Sync: target URL must not contain user:pass@ or ?query — refusing to submit until fixed.";
+
     private volatile BankSnapshot lastCapturedSnapshot;
+    private volatile boolean configValid = true;
 
     @Inject
     private Client client;
@@ -44,6 +52,11 @@ public class OsrsBankSyncPlugin extends Plugin
     {
         dirty.set(false);
         lastCapturedSnapshot = null;
+        configValid = validateTargetUrl(config.targetUrl());
+        if (!configValid)
+        {
+            log.warn(INVALID_URL_MESSAGE);
+        }
         log.info("OSRS Bank Sync started");
     }
 
@@ -71,6 +84,16 @@ public class OsrsBankSyncPlugin extends Plugin
     public void onWidgetClosed(WidgetClosed event)
     {
         if (event.getGroupId() != InterfaceID.BANK || !event.isUnload())
+        {
+            return;
+        }
+
+        if (!configValid || !config.includeBank() || config.submitMode() == OsrsBankSyncConfig.SubmitMode.OFF)
+        {
+            return;
+        }
+
+        if (config.submitMode() == OsrsBankSyncConfig.SubmitMode.MANUAL_ONLY)
         {
             return;
         }
@@ -110,6 +133,16 @@ public class OsrsBankSyncPlugin extends Plugin
             return;
         }
 
+        if (!configValid || !config.includeBank() || config.submitMode() == OsrsBankSyncConfig.SubmitMode.OFF)
+        {
+            return;
+        }
+
+        if (config.submitMode() == OsrsBankSyncConfig.SubmitMode.MANUAL_ONLY)
+        {
+            return;
+        }
+
         if (!dirty.get() || lastCapturedSnapshot == null)
         {
             return;
@@ -126,6 +159,27 @@ public class OsrsBankSyncPlugin extends Plugin
     {
         return outcome == BankSubmitter.SubmitOutcome.SENT_OK
             || outcome == BankSubmitter.SubmitOutcome.SENT_REJECTED_TERMINAL;
+    }
+
+    @Subscribe
+    public void onConfigChanged(ConfigChanged event)
+    {
+        if (!CONFIG_GROUP.equals(event.getGroup()) || !TARGET_URL_KEY.equals(event.getKey()))
+        {
+            return;
+        }
+
+        configValid = validateTargetUrl(config.targetUrl());
+        if (!configValid)
+        {
+            log.warn(INVALID_URL_MESSAGE);
+            client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", INVALID_URL_MESSAGE, null);
+        }
+    }
+
+    private boolean validateTargetUrl(String raw)
+    {
+        return TargetUrlValidator.isValid(raw);
     }
 
     @Provides
