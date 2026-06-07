@@ -12,7 +12,7 @@ import net.runelite.api.InventoryID;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.WidgetClosed;
-import net.runelite.api.widgets.InterfaceID;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.eventbus.EventBus;
@@ -98,7 +98,7 @@ public class OsrsBankSyncPlugin extends Plugin
     @Subscribe
     public void onWidgetClosed(WidgetClosed event)
     {
-        if (event.getGroupId() != InterfaceID.BANK || !event.isUnload())
+        if (event.getGroupId() != InterfaceID.BANKMAIN || !event.isUnload())
         {
             return;
         }

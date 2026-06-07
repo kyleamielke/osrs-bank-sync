@@ -7,10 +7,9 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.FontID;
 import net.runelite.api.events.WidgetLoaded;
-import net.runelite.api.widgets.InterfaceID;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.JavaScriptCallback;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.widgets.WidgetTextAlignment;
 import net.runelite.api.widgets.WidgetType;
 import net.runelite.client.callback.ClientThread;
@@ -49,7 +48,7 @@ class BankSyncButton
     @Subscribe
     public void onWidgetLoaded(WidgetLoaded event)
     {
-        if (event.getGroupId() != InterfaceID.BANK)
+        if (event.getGroupId() != InterfaceID.BANKMAIN)
         {
             return;
         }
@@ -59,8 +58,8 @@ class BankSyncButton
 
     private void addButtonIfMissing()
     {
-        Widget titleBar = client.getWidget(WidgetInfo.BANK_TITLE_BAR);
-        Widget searchButton = client.getWidget(WidgetInfo.BANK_SEARCH_BUTTON_BACKGROUND);
+        Widget titleBar = client.getWidget(InterfaceID.Bankmain.TITLE);
+        Widget searchButton = client.getWidget(InterfaceID.Bankmain.SEARCH);
         if (titleBar == null || searchButton == null)
         {
             return;
