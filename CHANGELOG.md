@@ -6,3 +6,4 @@
 
 ### Added
 - Gradle 8.x wrapper, build.gradle targeting RuneLite latest.release with Java 11 source (Phase 1.1)
+- Minimal `OsrsBankSyncPlugin` + stub `OsrsBankSyncConfig` (Phase 1.2)
