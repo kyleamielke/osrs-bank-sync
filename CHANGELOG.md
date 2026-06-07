@@ -16,6 +16,7 @@
 - Full config interface (authToken/submitMode/includeBank/showChatConfirmations) with secret=true on token; targetUrl validation rejects user:pass@ and ?query (Phase 4.1)
 - Authorization: Bearer header (when token configured); session-scoped warning when posting plaintext HTTP to a non-loopback host (Phase 4.2)
 - In-game chat messages on successful/rejected/401 submits and on plaintext-non-loopback warning (Phase 4.3)
+- "Sync" button on the bank widget — force-submit bypassing dedupe (Phase 4.4)
 
 ### Changed
 - `BankSubmitter` return type changed from `SubmitOutcome` enum to `SubmitResult` carrying HTTP code + truncated body (Phase 4.3)

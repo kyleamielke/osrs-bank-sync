@@ -15,6 +15,7 @@ import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -51,6 +52,12 @@ public class OsrsBankSyncPlugin extends Plugin
     @Inject
     private BankSubmitter submitter;
 
+    @Inject
+    private BankSyncButton bankSyncButton;
+
+    @Inject
+    private EventBus eventBus;
+
     @Override
     protected void startUp() throws Exception
     {
@@ -58,6 +65,7 @@ public class OsrsBankSyncPlugin extends Plugin
         lastCapturedSnapshot = null;
         lastChatWarnedPlaintextUrl.set(null);
         configValid = validateTargetUrl(config.targetUrl());
+        eventBus.register(bankSyncButton);
         if (!configValid)
         {
             log.warn(INVALID_URL_MESSAGE);
@@ -71,6 +79,7 @@ public class OsrsBankSyncPlugin extends Plugin
         dirty.set(false);
         lastCapturedSnapshot = null;
         lastChatWarnedPlaintextUrl.set(null);
+        eventBus.unregister(bankSyncButton);
         log.info("OSRS Bank Sync stopped");
     }
 
